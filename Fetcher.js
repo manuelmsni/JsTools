@@ -93,18 +93,18 @@ class Fetcher {
         return jsonArray;
     }
 
-    async fetchJsonWithCache(key, fetchFunction, expTimeInMs = 86400000) {
-		const cachedData = localStorage.getItem(key);
-		const cachedExpiry = localStorage.getItem('cacheExpiry');
-		const now = new Date().getTime();
-		let expiryData = cachedExpiry ? JSON.parse(cachedExpiry) : {};
-		if (cachedData && expiryData[key] && now < expiryData[key]) {
-			return JSON.parse(cachedData);
-		}
-		const data = await fetchFunction();
-		localStorage.setItem(key, JSON.stringify(data));
-		expiryData[key] = now + expTimeInMs;
-		localStorage.setItem('cacheExpiry', JSON.stringify(expiryData));
-		return data;
+    async fetchDataWithCache(key, fetchFunction, expTimeInMs = 86400000) {
+	const cachedData = localStorage.getItem(key);
+	const cachedExpiry = localStorage.getItem('cacheExpiry');
+	const now = new Date().getTime();
+	let expiryData = cachedExpiry ? JSON.parse(cachedExpiry) : {};
+	if (cachedData && expiryData[key] && now < expiryData[key]) {
+	    return JSON.parse(cachedData);
 	}
+	const data = await fetchFunction();
+	localStorage.setItem(key, JSON.stringify(data));
+	expiryData[key] = now + expTimeInMs;
+	localStorage.setItem('cacheExpiry', JSON.stringify(expiryData));
+	return data;
+    }
 }
