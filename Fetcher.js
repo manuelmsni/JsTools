@@ -92,4 +92,15 @@ class Fetcher {
 
         return jsonArray;
     }
+
+    async fetchJsonWithCache(key, fetchFunction) {
+        const cachedData = localStorage.getItem(key);
+        if (cachedData) {
+            return JSON.parse(cachedData);
+        } else {
+            const data = await fetchFunction();
+            localStorage.setItem(key, JSON.stringify(data));
+            return data;
+        }
+    }
 }
