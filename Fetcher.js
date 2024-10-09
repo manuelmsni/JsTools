@@ -107,4 +107,8 @@ class Fetcher {
 	localStorage.setItem('cacheExpiry', JSON.stringify(expiryData));
 	return data;
     }
+
+    getImageUrlFromDrive(id){
+        return 'https://drive.google.com/uc?export=download&id=' + id;
+    }
 }
