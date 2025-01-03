@@ -12,9 +12,9 @@ class Fetcher {
         try {
             await this.testCors();
             this.initialized = true;
-            console.log('Fetcher initialized');
+	    if(this.debugMode) console.log('Fetcher initialized');
         } catch (error) {
-            console.error('Failed to initialize Fetcher:', error);
+	    if(this.debugMode) console.error('Failed to initialize Fetcher:', error);
         }
     }
 
@@ -29,11 +29,11 @@ class Fetcher {
         try {
             response = await fetch('https://httpbin.org/cors');
         } catch (error) {
-            console.log('Error al cargar el documento:', error);
+	    if(this.debugMode) console.log('Error al cargar el documento:', error);
         } finally {
             if (!response || !response.ok) {
                 this.requiresCorsProxy = true;
-                console.log('Proxy required for CORS requests.');
+	        if(this.debugMode) console.log('Proxy required for CORS requests.');
             }
         }
     }
@@ -55,7 +55,7 @@ class Fetcher {
                 data = await this.fetchFileContent('https://corsproxy.io/?' + url);
             }
         } catch (error) {
-            console.error('Error al cargar el documento:', error);
+            if(this.debugMode) console.error('Error al cargar el documento:', error);
         } finally {
             return data;
         }
@@ -71,7 +71,7 @@ class Fetcher {
             const array2D = rows.map(row => row.split(',').map(col => col.trim().replace("\r", "")));
             return array2D;
         } catch (error) {
-            console.error('Error al cargar el csv:', error);
+            if(this.debugMode) console.error('Error al cargar el csv:', error);
         }
     }
 
@@ -79,7 +79,7 @@ class Fetcher {
         const array2D = await this.fetchGoogleSheetsCSV(sheetId, sheetGID);
 
         if (!array2D || array2D.length < 2) {
-            console.error("CSV no tiene suficientes datos.");
+            if(this.debugMode) console.error("CSV no tiene suficientes datos.");
             return [];
         }
 
@@ -121,7 +121,7 @@ class Fetcher {
             const plainText = await this.fetchFileContentAvoidingCors(targetUrl);
             return plainText;
         } catch (error) {
-            console.error('Error al obtener el texto plano del documento:', error);
+            if(this.debugMode) console.error('Error al obtener el texto plano del documento:', error);
         }
     }
 
@@ -136,9 +136,8 @@ async fetchGoogleDocsHtml(docId) {
 
     lines.forEach(line => {
         const trimmedLine = line.trim();
-        if(debugMode){
-	    console.log("Processing line:", trimmedLine);
-        }
+	    
+        if(this.debugMode) console.log("Processing line:", trimmedLine);
         
         // Header
         const headerMatch = /^#{1,6}\s/.exec(trimmedLine);
@@ -203,9 +202,7 @@ async fetchGoogleDocsHtml(docId) {
 		    }
 		}
 		    
-		if(debugMode){
-		    console.log(attributes);
-		}
+		if(this.debugMode) console.log(attributes);
 		    
                 imageHtml += `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
 
