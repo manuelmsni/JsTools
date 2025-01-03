@@ -192,7 +192,7 @@ async fetchGoogleDocsHtml(docId) {
 
                 // Extract all other attributes
 		const attributesString = imageContent.split("|")[1];
-                const attributesPattern = /(\w+)="([^"]*)"|(\w+)=/g;
+                const attributesPattern = /(\w+)="([^"]*)"|(\w+)(?=\s|>)/g;
                 let match;
 	        while ((match = attributesPattern.exec(imageContent)) !== null) {
 		    let key = match[1].trim() || null;
