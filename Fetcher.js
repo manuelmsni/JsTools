@@ -197,6 +197,8 @@ async fetchGoogleDocsHtml(docId) {
                     attributes[attributeName] = attributeValue;
                 }
 
+		    console.log(attributes.toString());
+
                 // Build the image HTML tag
                 imageHtml += `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
 
