@@ -111,4 +111,15 @@ class Fetcher {
     getImageUrlFromDrive(id){
         return 'https://drive.google.com/uc?export=download&id=' + id;
     }
+
+    async fetchGoogleDocsPlainText(docId) {
+        await this.waitForInitialization();
+        const targetUrl = `https://docs.google.com/document/d/${docId}/export?format=txt`;
+        try {
+            const plainText = await this.fetchFileContentAvoidingCors(targetUrl);
+            return plainText;
+        } catch (error) {
+            console.error('Error al obtener el texto plano del documento:', error);
+        }
+    }
 }
