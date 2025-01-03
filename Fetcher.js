@@ -126,6 +126,7 @@ class Fetcher {
 async fetchGoogleDocsHtml(docId) {
     const text = await this.fetchGoogleDocsPlainText(docId);
     const lines = text.split('\n');
+    const imagePattern = /^\[image\|([^\]]+)\]$/;
     let html = '';
     let isInList = false;
     let listType = null;
@@ -170,8 +171,7 @@ async fetchGoogleDocsHtml(docId) {
         }
 
         // Image processing
-        const imagePattern = /^\[image\|([^\]]+)\]$/;
-        if (imagePattern.test(trimmedLine)) {
+        else if (imagePattern.test(trimmedLine)) {
             console.log("Image match found:", trimmedLine);
             const imageMatch = imagePattern.exec(trimmedLine);
             if (imageMatch) {
