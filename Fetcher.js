@@ -129,7 +129,7 @@ async fetchGoogleDocsHtml(docId) {
     let html = '';
     let isInList = false;
     let listType = null;
-    let imageGroup = null; // Variable para manejar imágenes agrupadas
+    let imageGroup = null;
 
     lines.forEach(line => {
         const trimmedLine = line.trim();
@@ -171,13 +171,21 @@ async fetchGoogleDocsHtml(docId) {
             html += `<li>${trimmedLine.replace(/^\d+\.\s*/, '').trim()}</li>`;
         }
 
+        // Check for image with basic structure [image] (even without src or other attributes)
+        const imageBasicPattern = /^\[image\]$/;
+        if (imageBasicPattern.test(trimmedLine)) {
+            console.log("Basic image match found:", trimmedLine);
+
+            // Create a basic image HTML with no attributes, only a placeholder
+            html += `<img src="placeholder.jpg" alt="Embedded Image" />`;
+        }
+
         // Check for image with attributes and src URL
-        else if (/^\[image\|src:([^\|]+)\|<([^>]+)>]$/.test(trimmedLine)) {
-            // Debugging: Mostrar el contenido de la imagen
+        const imagePattern = /^\[image\|src:([^\|]+)\|<([^>]+)>]$/;
+        if (imagePattern.test(trimmedLine)) {
             console.log("Image match found:", trimmedLine);
 
-            // Extract the image URL and attributes using a regular expression
-            const imageMatch = /^\[image\|src:([^\|]+)\|<([^>]+)>]$/.exec(trimmedLine);
+            const imageMatch = imagePattern.exec(trimmedLine);
             if (imageMatch) {
                 const imageSrc = imageMatch[1]; // src URL
                 const attributesString = imageMatch[2]; // Attributes within < > 
