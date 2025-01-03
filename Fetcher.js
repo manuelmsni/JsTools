@@ -1,8 +1,10 @@
 class Fetcher {
     requiresCorsProxy = false;
     initialized = false;
+    debugMode = false;
 
-    constructor() {
+    constructor(debugMode = false) {
+        this.debugMode = debugMode;
         this.initialize();
     }
 
@@ -134,7 +136,9 @@ async fetchGoogleDocsHtml(docId) {
 
     lines.forEach(line => {
         const trimmedLine = line.trim();
-        console.log("Processing line:", trimmedLine);
+        if(debugMode){
+	    console.log("Processing line:", trimmedLine);
+        }
         
         // Header
         const headerMatch = /^#{1,6}\s/.exec(trimmedLine);
@@ -172,7 +176,6 @@ async fetchGoogleDocsHtml(docId) {
 
         // Image processing
         else if (imagePattern.test(trimmedLine)) {
-            console.log("Image match found:", trimmedLine);
             const imageMatch = imagePattern.exec(trimmedLine);
             if (imageMatch) {
                 const imageContent = imageMatch[1].trim();
@@ -199,10 +202,11 @@ async fetchGoogleDocsHtml(docId) {
 			attributes[key] = value;
 		    }
 		}
-
-		console.log(attributes.toString());
-
-                // Build the image HTML tag
+		    
+		if(debugMode){
+		    console.log(attributes);
+		}
+		    
                 imageHtml += `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
 
                 // Add other attributes dynamically
