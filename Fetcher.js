@@ -189,15 +189,18 @@ async fetchGoogleDocsHtml(docId) {
                 }
 
                 // Extract all other attributes
-                const attributesPattern = /([^:|]+):([^|<]+)/g;
+		const attributesString = imageContent.split("|")[1];
+                const attributesPattern = /(\w+)="([^"]*)"|(\w+)=/g;
                 let match;
-                while ((match = attributesPattern.exec(imageContent)) !== null) {
-                    const attributeName = match[1].trim();
-                    const attributeValue = match[2].trim();
-                    attributes[attributeName] = attributeValue;
-                }
+	        while ((match = attributesPattern.exec(imageContent)) !== null) {
+		    let key = match[1].trim() || null;
+		    if(key){
+			let value = match[2] || true;
+			attributes[key] = value;
+		    }
+		}
 
-		    console.log(attributes.toString());
+		console.log(attributes.toString());
 
                 // Build the image HTML tag
                 imageHtml += `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
