@@ -171,51 +171,75 @@ async fetchGoogleDocsHtml(docId) {
             html += `<li>${trimmedLine.replace(/^\d+\.\s*/, '').trim()}</li>`;
         }
 
-        // Check for image with pattern [image*]
-        const imagePattern = /^\[image([^\]]*)\]$/;
+        // Check for image with pattern [image|...]
+        const imagePattern = /^\[image\|([^\]]+)\]$/;
         if (imagePattern.test(trimmedLine)) {
             console.log("Image match found:", trimmedLine);
 
             const imageMatch = imagePattern.exec(trimmedLine);
             if (imageMatch) {
-                const imageSrc = imageMatch[1].trim(); // src URL
+                const imageContent = imageMatch[1].trim(); // All content inside the brackets
 
-                // If the src is not empty or invalid, create the image
-                if (imageSrc) {
-                    let attributes = {};
-                    const attributesPattern = /\|([^:]+):([^|]+)\|/g;
-                    let match;
+                let attributes = {};
+                let imageHtml = '';
+                let imageSrc = '';
 
-                    // Extract attributes if they exist
-                    while ((match = attributesPattern.exec(trimmedLine)) !== null) {
-                        attributes[match[1].trim()] = match[2].trim();
-                    }
+                // Extract the src and other attributes
+                const srcPattern = /src:([^\|]+)/;
+                const srcMatch = srcPattern.exec(imageContent);
+                if (srcMatch) {
+                    imageSrc = srcMatch[1].trim();
+                    attributes.src = imageSrc;
+                }
 
-                    // Create image HTML based on src and attributes
-                    let imageHtml = `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
+                // Extract any other attributes like alt, figure, caption
+                const attributesPattern = /<([^>]+)>|([^:|]+):([^|]+)/g;
+                let match;
 
-                    // Apply attributes if found
-                    for (const key in attributes) {
-                        if (key !== 'alt') {
-                            imageHtml += ` ${key}="${attributes[key]}"`;
+                while ((match = attributesPattern.exec(imageContent)) !== null) {
+                    if (match[1]) {
+                        // It's a tag like <figure> or <caption>
+                        if (match[1] === 'figure') {
+                            imageHtml += '<figure>';
+                        } else if (match[1] === 'caption') {
+                            const captionText = match[2];
+                            imageHtml += `<figcaption>${captionText}</figcaption>`;
                         }
+                    } else {
+                        // It's an attribute like alt, group, etc.
+                        attributes[match[2].trim()] = match[3].trim();
                     }
+                }
 
-                    imageHtml += ' />';
+                // Create image HTML
+                imageHtml += `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
 
-                    // Check for group attribute
-                    if (attributes.group) {
-                        if (imageGroup !== attributes.group) {
-                            if (imageGroup) {
-                                html += `</div>`; // Close previous group if exists
-                            }
-                            html += `<div class="image-group">`; // Start a new group
-                            imageGroup = attributes.group;
+                // Apply attributes like alt, width, height, etc.
+                for (const key in attributes) {
+                    if (key !== 'alt' && key !== 'src') {
+                        imageHtml += ` ${key}="${attributes[key]}"`;
+                    }
+                }
+
+                imageHtml += ' />';
+
+                // Check for group attribute and handle grouping
+                if (attributes.group) {
+                    if (imageGroup !== attributes.group) {
+                        if (imageGroup) {
+                            html += `</div>`; // Close previous group if exists
                         }
+                        html += `<div class="image-group">`; // Start a new group
+                        imageGroup = attributes.group;
                     }
+                }
 
-                    // Append the generated image HTML
-                    html += imageHtml;
+                // Append the generated image HTML
+                html += imageHtml;
+
+                // Close figure tag if it was opened
+                if (imageHtml.includes('<figure>')) {
+                    html += '</figure>';
                 }
             }
         }
@@ -243,4 +267,5 @@ async fetchGoogleDocsHtml(docId) {
 
     return html;
 }
+
 }
