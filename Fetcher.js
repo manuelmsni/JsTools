@@ -75,7 +75,7 @@ class Fetcher {
         }
     }
 
-    async fetchGoogleSheetsCSVAsJson(sheetId, sheetGID) {
+    async fetchGoogleSheetsCSVAsJson(sheetId, sheetGID = 0) {
         const array2D = await this.fetchGoogleSheetsCSV(sheetId, sheetGID);
 
         if (!array2D || array2D.length < 2) {
