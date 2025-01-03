@@ -128,7 +128,10 @@ class Fetcher {
 async fetchGoogleDocsHtml(docId) {
     const text = await this.fetchGoogleDocsPlainText(docId);
     const lines = text.split('\n');
+    const headerPattern = /^#{1,6}\s/;
+    const orderedListPattern = /^\d+\./;
     const imagePattern = /^\[image\|([^\]]+)\]$/;
+    
     let html = '';
     let isInList = false;
     let listType = null;
@@ -140,7 +143,7 @@ async fetchGoogleDocsHtml(docId) {
         if(this.debugMode) console.log("Processing line:", trimmedLine);
         
         // Header
-        const headerMatch = /^#{1,6}\s/.exec(trimmedLine);
+        const headerMatch = headerPattern.exec(trimmedLine);
         if (headerMatch) {
             if (isInList) {
                 html += `</${listType}>`;
@@ -163,7 +166,7 @@ async fetchGoogleDocsHtml(docId) {
         }
         
         // Ordered list
-        else if (/^\d+\./.test(trimmedLine)) {
+        else if (orderedListPattern.test(trimmedLine)) {
             if (!isInList || listType !== 'ol') {
                 if (isInList) html += `</${listType}>`;
                 html += '<ol>';
@@ -224,6 +227,10 @@ async fetchGoogleDocsHtml(docId) {
                         html += `<div class="image-group">`;
                         imageGroup = attributes.group;
                     }
+                }
+
+	        if (attributes.figure) {
+                    html += '<figure>';
                 }
                 
                 html += imageHtml;
