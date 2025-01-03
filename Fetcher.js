@@ -139,12 +139,9 @@ async fetchGoogleDocsHtml(docId) {
 
     lines.forEach(line => {
         const trimmedLine = line.trim();
-	    
         if(this.debugMode) console.log("Processing line:", trimmedLine);
-        
-        // Header
         const headerMatch = headerPattern.exec(trimmedLine);
-        if (headerMatch) {
+        if (headerMatch) {  // Header
             if (isInList) {
                 html += `</${listType}>`;
                 isInList = false;
@@ -153,9 +150,7 @@ async fetchGoogleDocsHtml(docId) {
             const level = headerMatch[0].trim().length;
             html += `<h${level}>${trimmedLine.slice(level).trim()}</h${level}>`;
         }
-        
-        // Unordered list
-        else if (trimmedLine.startsWith('*')) {
+        else if (trimmedLine.startsWith('*')) { // Unordered list
             if (!isInList || listType !== 'ul') {
                 if (isInList) html += `</${listType}>`;
                 html += '<ul>';
@@ -164,9 +159,7 @@ async fetchGoogleDocsHtml(docId) {
             }
             html += `<li>${trimmedLine.slice(1).trim()}</li>`;
         }
-        
-        // Ordered list
-        else if (orderedListPattern.test(trimmedLine)) {
+        else if (orderedListPattern.test(trimmedLine)) { // Ordered list
             if (!isInList || listType !== 'ol') {
                 if (isInList) html += `</${listType}>`;
                 html += '<ol>';
@@ -175,9 +168,7 @@ async fetchGoogleDocsHtml(docId) {
             }
             html += `<li>${trimmedLine.replace(/^\d+\.\s*/, '').trim()}</li>`;
         }
-
-        // Image processing
-        else if (imagePattern.test(trimmedLine)) {
+        else if (imagePattern.test(trimmedLine)) { // Image processing
             const imageMatch = imagePattern.exec(trimmedLine);
             if (imageMatch) {
                 const imageContent = imageMatch[1].trim();
@@ -185,7 +176,6 @@ async fetchGoogleDocsHtml(docId) {
                 let imageHtml = '';
                 let imageSrc = '';
                 
-                // Extract the src attribute
                 const srcPattern = /src:([^\|]+)/;
                 const srcMatch = srcPattern.exec(imageContent);
                 if (srcMatch) {
@@ -193,7 +183,6 @@ async fetchGoogleDocsHtml(docId) {
                     attributes.src = imageSrc;
                 }
 
-                // Extract all other attributes
 		const attributesString = imageContent.split("|")[1];
                 const attributesPattern = /(\w+)(?:="([^"]*)")?/g;
                 let match;
@@ -209,16 +198,14 @@ async fetchGoogleDocsHtml(docId) {
 		    
                 imageHtml += `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
 
-                // Add other attributes dynamically
                 for (const key in attributes) {
-                    if (key !== 'alt' && key !== 'src') {
+                    if (key !== 'alt' && key !== 'src' && key !== 'group' && key !== 'figure') {
                         imageHtml += ` ${key}="${attributes[key]}"`;
                     }
                 }
 
                 imageHtml += ' />';
 
-                // Grouping images under a common div if group attribute is present
                 if (attributes.group) {
                     if (imageGroup !== attributes.group) {
                         if (imageGroup) {
@@ -231,19 +218,19 @@ async fetchGoogleDocsHtml(docId) {
 
 	        if (attributes.figure) {
                     html += '<figure>';
+		    if(attributes.caption){
+			    html += `<figuracaption>"${attributes.caption}"</figurecaption>`
+		    }
                 }
                 
                 html += imageHtml;
 
-                // Close the figure tag if opened
                 if (attributes.figure) {
                     html += '</figure>';
                 }
             }
         }
-        
-        // Plain text or paragraph
-        else {
+        else { // Plain text
             if (isInList) {
                 html += `</${listType}>`;
                 isInList = false;
