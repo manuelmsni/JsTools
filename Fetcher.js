@@ -195,10 +195,10 @@ async fetchGoogleDocsHtml(docId) {
                 const attributesPattern = /(\w+)="([^"]*)"|(\w+)(?=\s|>)/g;
                 let match;
 	        while ((match = attributesPattern.exec(attributesString)) !== null) {
-		    let key = match[1].trim() || null;
-		    if(key){
-			let value = match[2] || true;
-			attributes[key] = value;
+		    let key = match[1].trim() || match[3].trim() || null;
+		    if (key) {
+		        let value = match[2] || true;
+		        attributes[key] = value;
 		    }
 		}
 		    
