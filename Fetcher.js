@@ -169,14 +169,10 @@ async fetchGoogleDocsHtml(docId) {
         }
 
         // Check for image with attributes and src URL
-        else if (/^\[image\|src:([^\|]+)\|<([^>]+)>]$/.test(trimmedLine)) {
-            if (isInList) {
-                html += `</${listType}>`;
-                isInList = false;
-                listType = null;
-            }
+        else if (trimmedLine.startsWith('[image|src:')) {
+            // Extract the image URL and attributes using a regular expression
+            const imageMatch = /^\[image\|src:([^\|]+)\|<([^>]+)>]$/.exec(trimmedLine);
 
-            const imageMatch = trimmedLine.match(/^\[image\|src:([^\|]+)\|<([^>]+)>]$/);
             if (imageMatch) {
                 const imageSrc = imageMatch[1]; // src URL
                 const attributesString = imageMatch[2]; // Attributes within < > 
@@ -246,5 +242,6 @@ async fetchGoogleDocsHtml(docId) {
 
     return html;
 }
+
 
 }
