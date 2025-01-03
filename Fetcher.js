@@ -124,7 +124,7 @@ class Fetcher {
     }
 
     async fetchGoogleDocsHtml(docId) {
-	const text = await fetchGoogleDocsPlainText(docId);
+	const text = await this.fetchGoogleDocsPlainText(docId);
         const lines = text.split('\n');
         let html = '';
         let isInList = false;
