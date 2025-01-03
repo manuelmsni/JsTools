@@ -134,6 +134,9 @@ async fetchGoogleDocsHtml(docId) {
     lines.forEach(line => {
         const trimmedLine = line.trim();
 
+        // Debugging: Mostrar el contenido de cada línea procesada
+        console.log("Processing line:", trimmedLine);
+
         // Check for header
         const headerMatch = /^#{1,6}\s/.exec(trimmedLine);
         if (headerMatch) {
@@ -169,10 +172,12 @@ async fetchGoogleDocsHtml(docId) {
         }
 
         // Check for image with attributes and src URL
-        else if (trimmedLine.startsWith('[image|src:')) {
+        else if (/^\[image\|src:([^\|]+)\|<([^>]+)>]$/.test(trimmedLine)) {
+            // Debugging: Mostrar el contenido de la imagen
+            console.log("Image match found:", trimmedLine);
+
             // Extract the image URL and attributes using a regular expression
             const imageMatch = /^\[image\|src:([^\|]+)\|<([^>]+)>]$/.exec(trimmedLine);
-
             if (imageMatch) {
                 const imageSrc = imageMatch[1]; // src URL
                 const attributesString = imageMatch[2]; // Attributes within < > 
@@ -181,6 +186,9 @@ async fetchGoogleDocsHtml(docId) {
                     if (key) acc[key] = value || true; // If no value, set as true
                     return acc;
                 }, {});
+
+                // Debugging: Mostrar los atributos de la imagen
+                console.log("Attributes:", attributes);
 
                 // Create image HTML based on attributes
                 let imageHtml = '';
@@ -242,6 +250,5 @@ async fetchGoogleDocsHtml(docId) {
 
     return html;
 }
-
 
 }
