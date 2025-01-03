@@ -218,14 +218,14 @@ async fetchGoogleDocsHtml(docId) {
 
 	        if (attributes.figure) {
                     html += '<figure>';
-		    if(attributes.caption){
-			    html += `<figuracaption>"${attributes.caption}"</figurecaption>`
-		    }
                 }
                 
                 html += imageHtml;
 
                 if (attributes.figure) {
+		    if(attributes.caption){
+		        html += `<figuracaption>"${attributes.caption}"</figurecaption>`
+		    }
                     html += '</figure>';
                 }
             }
