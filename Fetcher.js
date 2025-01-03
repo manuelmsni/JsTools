@@ -242,8 +242,9 @@ async fetchGoogleDocsHtml(docId) {
                 isInList = false;
                 listType = null;
             }
-	    else if (imageGroup) {
+	    if (imageGroup) {
                 html += `</div>`;
+		imageGroup = null;
 	    }
             if (trimmedLine) {
                 html += `<p>${trimmedLine}</p>`;
