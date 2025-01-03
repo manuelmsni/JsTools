@@ -172,7 +172,7 @@ async fetchGoogleDocsHtml(docId) {
         }
 
         // Check for image with pattern [image*]
-        const imagePattern = /^\[image\*([^\]]+)\]$/;
+        const imagePattern = /^\[image\*(.*?)\]$/;
         if (imagePattern.test(trimmedLine)) {
             console.log("Image match found:", trimmedLine);
 
