@@ -199,7 +199,7 @@ async fetchGoogleDocsHtml(docId) {
                 imageHtml += `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
 
                 for (const key in attributes) {
-                    if (key !== 'alt' && key !== 'src' && key !== 'group' && key !== 'figure') {
+                    if (!["alt", "src", "group", "figure", "caption"].includes(key)) {
                         imageHtml += ` ${key}="${attributes[key]}"`;
                     }
                 }
