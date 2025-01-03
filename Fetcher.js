@@ -179,33 +179,37 @@ async fetchGoogleDocsHtml(docId) {
                 let attributes = {};
                 let imageHtml = '';
                 let imageSrc = '';
+                
+                // Extract the src attribute
                 const srcPattern = /src:([^\|]+)/;
                 const srcMatch = srcPattern.exec(imageContent);
                 if (srcMatch) {
                     imageSrc = srcMatch[1].trim();
                     attributes.src = imageSrc;
                 }
-                const attributesPattern = /<([^>]+)>|([^:|]+):([^|]+)/g;
+
+                // Extract all other attributes
+                const attributesPattern = /([^:|]+):([^|<]+)/g;
                 let match;
                 while ((match = attributesPattern.exec(imageContent)) !== null) {
-                    if (match[1]) {
-                        if (match[1] === 'figure') {
-                            imageHtml += '<figure>';
-                        } else if (match[1] === 'caption') {
-                            const captionText = match[2];
-                            imageHtml += `<figcaption>${captionText}</figcaption>`;
-                        }
-                    } else {
-                        attributes[match[2].trim()] = match[3].trim();
-                    }
+                    const attributeName = match[1].trim();
+                    const attributeValue = match[2].trim();
+                    attributes[attributeName] = attributeValue;
                 }
+
+                // Build the image HTML tag
                 imageHtml += `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
+
+                // Add other attributes dynamically
                 for (const key in attributes) {
                     if (key !== 'alt' && key !== 'src') {
                         imageHtml += ` ${key}="${attributes[key]}"`;
                     }
                 }
+
                 imageHtml += ' />';
+
+                // Grouping images under a common div if group attribute is present
                 if (attributes.group) {
                     if (imageGroup !== attributes.group) {
                         if (imageGroup) {
@@ -215,8 +219,11 @@ async fetchGoogleDocsHtml(docId) {
                         imageGroup = attributes.group;
                     }
                 }
+                
                 html += imageHtml;
-                if (imageHtml.includes('<figure>')) {
+
+                // Close the figure tag if opened
+                if (attributes.figure) {
                     html += '</figure>';
                 }
             }
