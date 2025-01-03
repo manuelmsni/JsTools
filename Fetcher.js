@@ -133,11 +133,9 @@ async fetchGoogleDocsHtml(docId) {
 
     lines.forEach(line => {
         const trimmedLine = line.trim();
-
-        // Debugging: Mostrar el contenido de cada línea procesada
         console.log("Processing line:", trimmedLine);
-
-        // Check for header
+        
+        // Header
         const headerMatch = /^#{1,6}\s/.exec(trimmedLine);
         if (headerMatch) {
             if (isInList) {
@@ -148,8 +146,8 @@ async fetchGoogleDocsHtml(docId) {
             const level = headerMatch[0].trim().length;
             html += `<h${level}>${trimmedLine.slice(level).trim()}</h${level}>`;
         }
-
-        // Check for unordered list
+        
+        // Unordered list
         else if (trimmedLine.startsWith('*')) {
             if (!isInList || listType !== 'ul') {
                 if (isInList) html += `</${listType}>`;
@@ -159,8 +157,8 @@ async fetchGoogleDocsHtml(docId) {
             }
             html += `<li>${trimmedLine.slice(1).trim()}</li>`;
         }
-
-        // Check for ordered list
+        
+        // Ordered list
         else if (/^\d+\./.test(trimmedLine)) {
             if (!isInList || listType !== 'ol') {
                 if (isInList) html += `</${listType}>`;
@@ -171,34 +169,26 @@ async fetchGoogleDocsHtml(docId) {
             html += `<li>${trimmedLine.replace(/^\d+\.\s*/, '').trim()}</li>`;
         }
 
-        // Check for image with pattern [image|...]
+        // Image processing
         const imagePattern = /^\[image\|([^\]]+)\]$/;
         if (imagePattern.test(trimmedLine)) {
             console.log("Image match found:", trimmedLine);
-
             const imageMatch = imagePattern.exec(trimmedLine);
             if (imageMatch) {
-                const imageContent = imageMatch[1].trim(); // All content inside the brackets
-
+                const imageContent = imageMatch[1].trim();
                 let attributes = {};
                 let imageHtml = '';
                 let imageSrc = '';
-
-                // Extract the src and other attributes
                 const srcPattern = /src:([^\|]+)/;
                 const srcMatch = srcPattern.exec(imageContent);
                 if (srcMatch) {
                     imageSrc = srcMatch[1].trim();
                     attributes.src = imageSrc;
                 }
-
-                // Extract any other attributes like alt, figure, caption
                 const attributesPattern = /<([^>]+)>|([^:|]+):([^|]+)/g;
                 let match;
-
                 while ((match = attributesPattern.exec(imageContent)) !== null) {
                     if (match[1]) {
-                        // It's a tag like <figure> or <caption>
                         if (match[1] === 'figure') {
                             imageHtml += '<figure>';
                         } else if (match[1] === 'caption') {
@@ -206,45 +196,33 @@ async fetchGoogleDocsHtml(docId) {
                             imageHtml += `<figcaption>${captionText}</figcaption>`;
                         }
                     } else {
-                        // It's an attribute like alt, group, etc.
                         attributes[match[2].trim()] = match[3].trim();
                     }
                 }
-
-                // Create image HTML
                 imageHtml += `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
-
-                // Apply attributes like alt, width, height, etc.
                 for (const key in attributes) {
                     if (key !== 'alt' && key !== 'src') {
                         imageHtml += ` ${key}="${attributes[key]}"`;
                     }
                 }
-
                 imageHtml += ' />';
-
-                // Check for group attribute and handle grouping
                 if (attributes.group) {
                     if (imageGroup !== attributes.group) {
                         if (imageGroup) {
-                            html += `</div>`; // Close previous group if exists
+                            html += `</div>`;
                         }
-                        html += `<div class="image-group">`; // Start a new group
+                        html += `<div class="image-group">`;
                         imageGroup = attributes.group;
                     }
                 }
-
-                // Append the generated image HTML
                 html += imageHtml;
-
-                // Close figure tag if it was opened
                 if (imageHtml.includes('<figure>')) {
                     html += '</figure>';
                 }
             }
         }
-
-        // Check for paragraph or plain text
+        
+        // Plain text or paragraph
         else {
             if (isInList) {
                 html += `</${listType}>`;
@@ -256,15 +234,15 @@ async fetchGoogleDocsHtml(docId) {
             }
         }
     });
-
+    
     // Close any open list or group
     if (isInList) {
         html += `</${listType}>`;
     }
     if (imageGroup) {
-        html += `</div>`; // Close last image group if any
+        html += `</div>`;
     }
-
+    
     return html;
 }
 
