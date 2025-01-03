@@ -171,67 +171,52 @@ async fetchGoogleDocsHtml(docId) {
             html += `<li>${trimmedLine.replace(/^\d+\.\s*/, '').trim()}</li>`;
         }
 
-        // Check for image with basic structure [image] (even without src or other attributes)
-        const imageBasicPattern = /^\[image\]$/;
-        if (imageBasicPattern.test(trimmedLine)) {
-            console.log("Basic image match found:", trimmedLine);
-
-            // Create a basic image HTML with no attributes, only a placeholder
-            html += `<img src="placeholder.jpg" alt="Embedded Image" />`;
-        }
-
-        // Check for image with attributes and src URL
-        const imagePattern = /^\[image\|src:([^\|]+)\|<([^>]+)>]$/;
+        // Check for image with pattern [image*]
+        const imagePattern = /^\[image\*([^\]]+)\]$/;
         if (imagePattern.test(trimmedLine)) {
             console.log("Image match found:", trimmedLine);
 
             const imageMatch = imagePattern.exec(trimmedLine);
             if (imageMatch) {
-                const imageSrc = imageMatch[1]; // src URL
-                const attributesString = imageMatch[2]; // Attributes within < > 
-                const attributes = attributesString.split('|').reduce((acc, attr) => {
-                    const [key, value] = attr.split('=').map(item => item.trim().replace(/"/g, ''));
-                    if (key) acc[key] = value || true; // If no value, set as true
-                    return acc;
-                }, {});
+                const imageSrc = imageMatch[1].trim(); // src URL
 
-                // Debugging: Mostrar los atributos de la imagen
-                console.log("Attributes:", attributes);
+                // If the src is not empty or invalid, create the image
+                if (imageSrc) {
+                    let attributes = {};
+                    const attributesPattern = /\|([^:]+):([^|]+)\|/g;
+                    let match;
 
-                // Create image HTML based on attributes
-                let imageHtml = '';
-
-                // Check for group attribute
-                if (attributes.group) {
-                    if (imageGroup !== attributes.group) {
-                        if (imageGroup) {
-                            html += `</div>`; // Close previous group if exists
-                        }
-                        html += `<div class="image-group">`; // Start a new group
-                        imageGroup = attributes.group;
+                    // Extract attributes if they exist
+                    while ((match = attributesPattern.exec(trimmedLine)) !== null) {
+                        attributes[match[1].trim()] = match[2].trim();
                     }
+
+                    // Create image HTML based on src and attributes
+                    let imageHtml = `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
+
+                    // Apply attributes if found
+                    for (const key in attributes) {
+                        if (key !== 'alt') {
+                            imageHtml += ` ${key}="${attributes[key]}"`;
+                        }
+                    }
+
+                    imageHtml += ' />';
+
+                    // Check for group attribute
+                    if (attributes.group) {
+                        if (imageGroup !== attributes.group) {
+                            if (imageGroup) {
+                                html += `</div>`; // Close previous group if exists
+                            }
+                            html += `<div class="image-group">`; // Start a new group
+                            imageGroup = attributes.group;
+                        }
+                    }
+
+                    // Append the generated image HTML
+                    html += imageHtml;
                 }
-
-                // Check for figure element
-                if (attributes.figure) {
-                    imageHtml += `<figure>`;
-                }
-
-                // Add caption if it exists
-                if (attributes.caption) {
-                    imageHtml += `<figcaption>${attributes.caption}</figcaption>`;
-                }
-
-                // Add the image itself
-                imageHtml += `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}" />`;
-
-                // Close the figure if it was opened
-                if (attributes.figure) {
-                    imageHtml += `</figure>`;
-                }
-
-                // Append the generated HTML for the image
-                html += imageHtml;
             }
         }
 
@@ -258,5 +243,4 @@ async fetchGoogleDocsHtml(docId) {
 
     return html;
 }
-
 }
