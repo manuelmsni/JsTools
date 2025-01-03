@@ -129,11 +129,12 @@ class Fetcher {
 	    let html = '';
 	    let isInList = false;
 	    let listType = null;
-	    let imageGroup = null;
+	    let imageGroup = null; // Variable para manejar imágenes agrupadas
 	
 	    lines.forEach(line => {
 	        const trimmedLine = line.trim();
 	
+	        // Check for header
 	        const headerMatch = /^#{1,6}\s/.exec(trimmedLine);
 	        if (headerMatch) {
 	            if (isInList) {
@@ -145,6 +146,7 @@ class Fetcher {
 	            html += `<h${level}>${trimmedLine.slice(level).trim()}</h${level}>`;
 	        }
 	
+	        // Check for unordered list
 	        else if (trimmedLine.startsWith('*')) {
 	            if (!isInList || listType !== 'ul') {
 	                if (isInList) html += `</${listType}>`;
@@ -155,6 +157,7 @@ class Fetcher {
 	            html += `<li>${trimmedLine.slice(1).trim()}</li>`;
 	        }
 	
+	        // Check for ordered list
 	        else if (/^\d+\./.test(trimmedLine)) {
 	            if (!isInList || listType !== 'ol') {
 	                if (isInList) html += `</${listType}>`;
@@ -165,27 +168,30 @@ class Fetcher {
 	            html += `<li>${trimmedLine.replace(/^\d+\.\s*/, '').trim()}</li>`;
 	        }
 	
-	        else if (/^\[image\|<data:image\/[^>]+>\|.*\]$/.test(trimmedLine)) {
+	        // Check for image with attributes and src URL
+	        else if (/^\[image\|src:[^\|]+(\|.*)\]$/.test(trimmedLine)) {
 	            if (isInList) {
 	                html += `</${listType}>`;
 	                isInList = false;
 	                listType = null;
 	            }
 	
-	            const imageMatch = trimmedLine.match(/^\[image\|(<data:image\/[^>]+>)\|(.*)\]$/);
+	            const imageMatch = trimmedLine.match(/^\[image\|src:([^\|]+)(\|.*)\]$/);
 	            if (imageMatch) {
 	                const imageSrc = imageMatch[1];
-	                const attributes = imageMatch[2].split('|').reduce((acc, attr) => {
+	                const attributes = imageMatch[2].slice(1).split('|').reduce((acc, attr) => {
 	                    const [key, value] = attr.split('=').map(item => item.trim());
-	                    if (key) acc[key] = value || true;
+	                    if (key) acc[key] = value || true; // If no value, set as true
 	                    return acc;
 	                }, {});
 	
+	                // Create image HTML based on attributes
 	                let imageHtml = '';
 	                if (attributes.group) {
+	                    // Group handling
 	                    if (imageGroup !== attributes.group) {
 	                        if (imageGroup) {
-	                            html += `</div>`;
+	                            html += `</div>`; // Close previous group
 	                        }
 	                        html += `<div class="image-group">`;
 	                        imageGroup = attributes.group;
@@ -193,6 +199,7 @@ class Fetcher {
 	                }
 	
 	                if (attributes.figure) {
+	                    // Figure handling
 	                    imageHtml += `<figure>`;
 	                    if (attributes.caption) {
 	                        imageHtml += `<figcaption>${attributes.caption}</figcaption>`;
@@ -209,6 +216,7 @@ class Fetcher {
 	            }
 	        }
 	
+	        // Check for paragraph or plain text
 	        else {
 	            if (isInList) {
 	                html += `</${listType}>`;
@@ -221,13 +229,15 @@ class Fetcher {
 	        }
 	    });
 	
+	    // Close any open list or group
 	    if (isInList) {
 	        html += `</${listType}>`;
 	    }
 	    if (imageGroup) {
-	        html += `</div>`;
+	        html += `</div>`; // Close last group if any
 	    }
 	
 	    return html;
 	}
+
 }
