@@ -224,7 +224,7 @@ async fetchGoogleDocsHtml(docId) {
 
                 if (attributes.figure) {
 		    if(attributes.caption){
-		        html += `<figcaption>"${attributes.caption}"</figcaption>`
+		        html += `<figcaption>${attributes.caption}</figcaption>`
 		    }
                     html += '</figure>';
                 }
