@@ -172,7 +172,6 @@ class Fetcher {
 
         await lines.forEach(async line => {
             const trimmedLine = line.trim();
-            if (this.debugMode) console.log("Processing line:", trimmedLine);
             const headerMatch = headerPattern.exec(trimmedLine);
             if (headerMatch) {  // Header
                 if (isInList) {
@@ -238,7 +237,7 @@ class Fetcher {
                         imageHtml += `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
                     }
 
-                    if (this.debugMode) console.log(attributes);
+                    if (this.debugMode) console.log('Image attributes', attributes);
 
                     for (const key in attributes) {
                         if (!["alt", "src", "group", "figure", "caption", "gid"].includes(key)) {
