@@ -114,13 +114,6 @@ class Fetcher {
         return 'https://drive.google.com/uc?export=download&id=' + id;
     }
 
-    async fetchImageFromDrive(id) {
-        const imageUrl = this.getImageUrlFromDrive(id);
-        const cacheKey = `image_${id}`;
-        const imageBase64 = await this.fetchAndCacheImage(imageUrl, cacheKey);
-        return `data:image/jpeg;base64,${imageBase64}`;
-    }
-
     blobToBase64(blob) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -144,6 +137,13 @@ class Fetcher {
         } catch (error) {
             if (this.debugMode) console.error('Error al cargar la imagen:', error);
         }
+    }
+
+    async fetchImageFromDrive(id) {
+        const imageUrl = this.getImageUrlFromDrive(id);
+        const cacheKey = `image_${id}`;
+        const imageBase64 = await this.fetchAndCacheImage(imageUrl, cacheKey);
+        return `data:image/jpeg;base64,${imageBase64}`;
     }
 
     async fetchGoogleDocsPlainText(docId) {
@@ -227,8 +227,13 @@ async fetchGoogleDocsHtml(docId) {
 		}
 		    
 		if(this.debugMode) console.log(attributes);
-		    
-                imageHtml += `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
+
+		// Fetch image using fetchImageFromDrive
+                const imageBase64 = await this.fetchImageFromDrive(imageSrc);  // Fetch image as base64
+                attributes.src = imageBase64; // Set the image source to base64 data
+                imageHtml += `<img src="${imageBase64}" alt="${attributes.alt || 'Embedded Image'}"`;
+
+                //imageHtml += `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
 
                 for (const key in attributes) {
                     if (!["alt", "src", "group", "figure", "caption"].includes(key)) {
