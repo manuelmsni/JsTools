@@ -209,12 +209,14 @@ class Fetcher {
                     let attributes = {};
                     let imageHtml = '';
                     let imageSrc = '';
+                    let isIdImage = false;
 
-                    const srcPattern = /src:([^\|]+)/;
+                    const srcPattern = /(src:|id:)([^\|]+)/;
                     const srcMatch = srcPattern.exec(imageContent);
                     if (srcMatch) {
-                        imageSrc = srcMatch[1].trim();
+                        imageSrc = srcMatch[2].trim();
                         attributes.src = imageSrc;
+                        isIdImage = match[1] === 'id:';
                     }
 
                     const attributesString = imageContent.split("|")[1];
@@ -230,12 +232,14 @@ class Fetcher {
 
                     if (this.debugMode) console.log(attributes);
 
-                    // Fetch image using fetchImageFromDrive
-                    const imageBase64 = await this.fetchImageFromDrive(imageSrc);  // Fetch image as base64
-                    attributes.src = imageBase64; // Set the image source to base64 data
-                    imageHtml += `<img src="${imageBase64}" alt="${attributes.alt || 'Embedded Image'}"`;
-
-                    //imageHtml += `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
+                    if(isIdImage){
+                        const imageBase64 = await this.fetchImageFromDrive(imageSrc);  // Fetch image as base64
+                        attributes.src = imageBase64; // Set the image source to base64 data
+                        imageHtml += `<img src="${imageBase64}" alt="${attributes.alt || 'Embedded Image'}"`;
+                    }
+                    else {
+                        imageHtml += `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
+                    }
 
                     for (const key in attributes) {
                         if (!["alt", "src", "group", "figure", "caption"].includes(key)) {
