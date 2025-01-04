@@ -114,6 +114,38 @@ class Fetcher {
         return 'https://drive.google.com/uc?export=download&id=' + id;
     }
 
+    async fetchImageFromDrive(id) {
+        const imageUrl = this.getImageUrlFromDrive(id);
+        const cacheKey = `image_${id}`;
+        const imageBase64 = await this.fetchAndCacheImage(imageUrl, cacheKey);
+        return `data:image/jpeg;base64,${imageBase64}`;
+    }
+
+    blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    }
+
+    async fetchAndCacheImage(imageUrl, cacheKey) {
+        const cachedImage = localStorage.getItem(cacheKey);
+        if (cachedImage) {
+            return cachedImage;
+        }
+        try {
+            const response = await this.fetchFileContentAvoidingCors(imageUrl);
+            const imageBlob = await response.blob();
+            const imageBase64 = await this.blobToBase64(imageBlob);
+            localStorage.setItem(cacheKey, imageBase64);
+            return imageBase64;
+        } catch (error) {
+            if (this.debugMode) console.error('Error al cargar la imagen:', error);
+        }
+    }
+
     async fetchGoogleDocsPlainText(docId) {
         await this.waitForInitialization();
         const targetUrl = `https://docs.google.com/document/d/${docId}/export?format=txt`;
