@@ -215,7 +215,7 @@ class Fetcher {
                     if (srcMatch) {
                         imageSrc = srcMatch[2].trim();
                         attributes.src = imageSrc;
-                        isIdImage = match[1] === 'id:';
+                        isIdImage = srcMatch[1] === 'id:';
                     }
 
                     const attributesString = imageContent.split("|")[1];
