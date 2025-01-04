@@ -111,7 +111,7 @@ class Fetcher {
     }
 
     getImageUrlFromDrive(id) {
-        return 'https://drive.google.com/uc?export=download&id=' + id;
+        return 'https://drive.google.com/uc?export=download&id=' + id + '&export=view&authuser=0';
     }
 
     blobToBase64(blob) {
