@@ -52,7 +52,8 @@ class Fetcher {
             if (!this.requiresCorsProxy) {
                 data = await this.fetchFileContent(url);
             } else {
-                data = await this.fetchFileContent('https://corsproxy.io/?' + url);
+                //data = await this.fetchFileContent('https://corsproxy.io/?' + url);
+                data = await this.fetchFileContent('https://cors-anywhere.herokuapp.com/' + url);
             }
         } catch (error) {
             if (this.debugMode) console.error('Error al cargar el documento:', error);
