@@ -210,7 +210,7 @@ class Fetcher {
                     }
 
                     attributes.src = await this.fetchAndCacheBase64ImageFromDrive(imageSrc);
-                    imageHtml += `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
+                    imageHtml += `<img src="${attributes.src}" alt="${attributes.alt || 'Embedded Image'}"`;
 
                     if (this.debugMode) console.log('Image attributes', attributes);
 
