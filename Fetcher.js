@@ -214,7 +214,6 @@ class Fetcher {
                     const srcMatch = srcPattern.exec(imageContent);
                     if (srcMatch) {
                         imageSrc = srcMatch[2].trim();
-                        attributes.src = imageSrc;
                         isIdImage = srcMatch[1] === 'id:';
                     }
 
@@ -229,19 +228,20 @@ class Fetcher {
                         }
                     }
 
-                    if (this.debugMode) console.log(attributes);
-
                     if(isIdImage){
-                        const imageBase64 = await this.fetchImageFromDrive(imageSrc);  // Fetch image as base64
-                        attributes.src = imageBase64; // Set the image source to base64 data
+                        const imageBase64 = await this.fetchImageFromDrive(imageSrc);
+                        attributes.gid = imageSrc;
                         imageHtml += `<img src="${imageBase64}" alt="${attributes.alt || 'Embedded Image'}"`;
                     }
                     else {
+                        attributes.src = imageSrc;
                         imageHtml += `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
                     }
 
+                    if (this.debugMode) console.log(attributes);
+
                     for (const key in attributes) {
-                        if (!["alt", "src", "group", "figure", "caption"].includes(key)) {
+                        if (!["alt", "src", "group", "figure", "caption", "gid"].includes(key)) {
                             imageHtml += ` ${key}="${attributes[key]}"`;
                         }
                     }
