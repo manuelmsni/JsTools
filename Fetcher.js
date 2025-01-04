@@ -186,13 +186,13 @@ async fetchGoogleDocsHtml(docId) {
                 let attributes = {};
                 let imageHtml = '';
                 let imageSrc = '';
-                let isIdImage = false;
+                let isGidImage = false;
 
                 const srcPattern = /(src:|gid:)([^\|]+)/;
                 const srcMatch = srcPattern.exec(imageContent);
                 if (srcMatch) {
                     imageSrc = srcMatch[2].trim();
-                    isIdImage = srcMatch[1] === 'id:';
+                    isGidImage = srcMatch[1] === 'id:';
                 }
 
                 const attributesString = imageContent.split("|")[1];
@@ -206,7 +206,13 @@ async fetchGoogleDocsHtml(docId) {
                     }
                 }
 
-                attributes.src = await this.fetchAndCacheBase64ImageFromDrive(imageSrc);
+                if(isGidImage){
+                    attributes.src = await this.fetchAndCacheBase64ImageFromDrive(imageSrc);
+                }
+                else {
+                    attributes.src = imageSrc;
+                }
+                
                 imageHtml += `<img src="${attributes.src}" alt="${attributes.alt || 'Embedded Image'}"`;
 
                 if (this.debugMode) console.log('Image attributes', attributes);
