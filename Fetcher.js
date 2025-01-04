@@ -54,6 +54,7 @@ class Fetcher {
             } else {
                 //data = await this.fetchFileContent('https://corsproxy.io/?' + url);
                 data = await this.fetchFileContent('https://cors-anywhere.herokuapp.com/' + url);
+                //data = await this.fetchFileContent('https://api.allorigins.win/raw?url=' + url);
             }
         } catch (error) {
             if (this.debugMode) console.error('Error al cargar el documento:', error);
