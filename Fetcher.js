@@ -117,7 +117,7 @@ class Fetcher {
 
     async fetchAndCacheBase64ImageFromDrive(gid) {
         try {
-            return await this.fetchDataWithCache(`image_${gid}`, this.fetchGoogleDocsPlainText(gid));
+            return await this.fetchDataWithCache(`image_${gid}`, this.fetchFileContentAvoidingCors(`https://drive.google.com/uc?id=${gid}&export=download`));
         } catch (error) {
             if (this.debugMode) console.error('Error al cargar la imagen:', error);
         }
