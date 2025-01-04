@@ -52,8 +52,8 @@ class Fetcher {
             if (!this.requiresCorsProxy) {
                 data = await this.fetchFileContent(url);
             } else {
-                data = await this.fetchFileContent('https://corsproxy.io/?' + url);
-                //data = await this.fetchFileContent('https://api.allorigins.win/raw?url=' + encodeURIComponent(url));
+                //data = await this.fetchFileContent('https://corsproxy.io/?' + url);
+                data = await this.fetchFileContent('https://api.allorigins.win/raw?url=' + encodeURIComponent(url));
             }
         } catch (error) {
             if (this.debugMode) console.error('Error al cargar el documento:', error);
