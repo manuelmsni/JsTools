@@ -140,137 +140,133 @@ class Fetcher {
         }
     }
 
-    async fetchGoogleDocsHtml(docId) {
-        const text = await this.fetchGoogleDocsPlainText(docId);
-        const lines = text.split('\n');
-        const headerPattern = /^#{1,6}\s/;
-        const orderedListPattern = /^\d+\./;
-        const imagePattern = /^\[image\|([^\]]+)\]$/;
+async fetchGoogleDocsHtml(docId) {
+    const text = await this.fetchGoogleDocsPlainText(docId);
+    const lines = text.split('\n');
+    const headerPattern = /^#{1,6}\s/;
+    const orderedListPattern = /^\d+\./;
+    const imagePattern = /^\[image\|([^\]]+)\]$/;
 
-        let html = '';
-        let isInList = false;
-        let listType = null;
-        let imageGroup = null;
+    let html = '';
+    let isInList = false;
+    let listType = null;
+    let imageGroup = null;
 
-        await lines.forEach(async line => {
-            const trimmedLine = line.trim();
-            const headerMatch = headerPattern.exec(trimmedLine);
-            if (headerMatch) {  // Header
-                if (isInList) {
-                    html += `</${listType}>`;
-                    isInList = false;
-                    listType = null;
-                }
-                const level = headerMatch[0].trim().length;
-                html += `<h${level}>${trimmedLine.slice(level).trim()}</h${level}>`;
+    for (const line of lines) {
+        const trimmedLine = line.trim();
+        const headerMatch = headerPattern.exec(trimmedLine);
+        if (headerMatch) {  // Header
+            if (isInList) {
+                html += `</${listType}>`;
+                isInList = false;
+                listType = null;
             }
-            else if (trimmedLine.startsWith('*')) { // Unordered list
-                if (!isInList || listType !== 'ul') {
-                    if (isInList) html += `</${listType}>`;
-                    html += '<ul>';
-                    isInList = true;
-                    listType = 'ul';
-                }
-                html += `<li>${trimmedLine.slice(1).trim()}</li>`;
+            const level = headerMatch[0].trim().length;
+            html += `<h${level}>${trimmedLine.slice(level).trim()}</h${level}>`;
+        } else if (trimmedLine.startsWith('*')) { // Unordered list
+            if (!isInList || listType !== 'ul') {
+                if (isInList) html += `</${listType}>`;
+                html += '<ul>';
+                isInList = true;
+                listType = 'ul';
             }
-            else if (orderedListPattern.test(trimmedLine)) { // Ordered list
-                if (!isInList || listType !== 'ol') {
-                    if (isInList) html += `</${listType}>`;
-                    html += '<ol>';
-                    isInList = true;
-                    listType = 'ol';
-                }
-                html += `<li>${trimmedLine.replace(/^\d+\.\s*/, '').trim()}</li>`;
+            html += `<li>${trimmedLine.slice(1).trim()}</li>`;
+        } else if (orderedListPattern.test(trimmedLine)) { // Ordered list
+            if (!isInList || listType !== 'ol') {
+                if (isInList) html += `</${listType}>`;
+                html += '<ol>';
+                isInList = true;
+                listType = 'ol';
             }
-            else if (imagePattern.test(trimmedLine)) { // Image processing
-                const imageMatch = imagePattern.exec(trimmedLine);
-                if (imageMatch) {
-                    const imageContent = imageMatch[1].trim();
-                    let attributes = {};
-                    let imageHtml = '';
-                    let imageSrc = '';
-                    let isIdImage = false;
+            html += `<li>${trimmedLine.replace(/^\d+\.\s*/, '').trim()}</li>`;
+        } else if (imagePattern.test(trimmedLine)) { // Image processing
+            const imageMatch = imagePattern.exec(trimmedLine);
+            if (imageMatch) {
+                const imageContent = imageMatch[1].trim();
+                let attributes = {};
+                let imageHtml = '';
+                let imageSrc = '';
+                let isIdImage = false;
 
-                    const srcPattern = /(src:|gid:)([^\|]+)/;
-                    const srcMatch = srcPattern.exec(imageContent);
-                    if (srcMatch) {
-                        imageSrc = srcMatch[2].trim();
-                        isIdImage = srcMatch[1] === 'id:';
+                const srcPattern = /(src:|gid:)([^\|]+)/;
+                const srcMatch = srcPattern.exec(imageContent);
+                if (srcMatch) {
+                    imageSrc = srcMatch[2].trim();
+                    isIdImage = srcMatch[1] === 'id:';
+                }
+
+                const attributesString = imageContent.split("|")[1];
+                const attributesPattern = /(\w+)(?:="([^"]*)")?/g;
+                let match;
+                while ((match = attributesPattern.exec(attributesString)) !== null) {
+                    let key = match[1].trim();
+                    if (key) {
+                        let value = match[2] || true;
+                        attributes[key] = value;
                     }
+                }
 
-                    const attributesString = imageContent.split("|")[1];
-                    const attributesPattern = /(\w+)(?:="([^"]*)")?/g;
-                    let match;
-                    while ((match = attributesPattern.exec(attributesString)) !== null) {
-                        let key = match[1].trim();
-                        if (key) {
-                            let value = match[2] || true;
-                            attributes[key] = value;
+                attributes.src = await this.fetchAndCacheBase64ImageFromDrive(imageSrc);
+                imageHtml += `<img src="${attributes.src}" alt="${attributes.alt || 'Embedded Image'}"`;
+
+                if (this.debugMode) console.log('Image attributes', attributes);
+
+                for (const key in attributes) {
+                    if (!["alt", "src", "group", "figure", "caption", "gid"].includes(key)) {
+                        imageHtml += ` ${key}="${attributes[key]}"`;
+                    }
+                }
+
+                imageHtml += ' crossorigin="anonymous" />';
+
+                if (attributes.group) {
+                    if (imageGroup !== attributes.group) {
+                        if (imageGroup) {
+                            html += `</div>`;
                         }
+                        html += `<div class="image-group">`;
+                        imageGroup = attributes.group;
                     }
+                }
 
-                    attributes.src = await this.fetchAndCacheBase64ImageFromDrive(imageSrc);
-                    imageHtml += `<img src="${attributes.src}" alt="${attributes.alt || 'Embedded Image'}"`;
+                if (attributes.figure) {
+                    html += '<figure>';
+                }
 
-                    if (this.debugMode) console.log('Image attributes', attributes);
+                html += imageHtml;
 
-                    for (const key in attributes) {
-                        if (!["alt", "src", "group", "figure", "caption", "gid"].includes(key)) {
-                            imageHtml += ` ${key}="${attributes[key]}"`;
-                        }
+                if (attributes.figure) {
+                    if (attributes.caption) {
+                        html += `<figcaption>${attributes.caption}</figcaption>`;
                     }
-
-                    imageHtml += ' crossorigin="anonymous" />';
-
-                    if (attributes.group) {
-                        if (imageGroup !== attributes.group) {
-                            if (imageGroup) {
-                                html += `</div>`;
-                            }
-                            html += `<div class="image-group">`;
-                            imageGroup = attributes.group;
-                        }
-                    }
-
-                    if (attributes.figure) {
-                        html += '<figure>';
-                    }
-
-                    html += imageHtml;
-
-                    if (attributes.figure) {
-                        if (attributes.caption) {
-                            html += `<figcaption>${attributes.caption}</figcaption>`
-                        }
-                        html += '</figure>';
-                    }
+                    html += '</figure>';
                 }
             }
-            else { // Plain text
-                if (isInList) {
-                    html += `</${listType}>`;
-                    isInList = false;
-                    listType = null;
-                }
-                if (imageGroup) {
-                    html += `</div>`;
-                    imageGroup = null;
-                }
-                if (trimmedLine) {
-                    html += `<p>${trimmedLine}</p>`;
-                }
+        } else { // Plain text
+            if (isInList) {
+                html += `</${listType}>`;
+                isInList = false;
+                listType = null;
             }
-        });
-
-        // Close any open list or group
-        if (isInList) {
-            html += `</${listType}>`;
+            if (imageGroup) {
+                html += `</div>`;
+                imageGroup = null;
+            }
+            if (trimmedLine) {
+                html += `<p>${trimmedLine}</p>`;
+            }
         }
-        if (imageGroup) {
-            html += `</div>`;
-        }
-
-        return html;
     }
+
+    // Close any open list or group
+    if (isInList) {
+        html += `</${listType}>`;
+    }
+    if (imageGroup) {
+        html += `</div>`;
+    }
+
+    return html;
+}
 
 }
