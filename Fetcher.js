@@ -192,7 +192,7 @@ async fetchGoogleDocsHtml(docId) {
                 const srcMatch = srcPattern.exec(imageContent);
                 if (srcMatch) {
                     imageSrc = srcMatch[2].trim();
-                    isGidImage = srcMatch[1] === 'id:';
+                    isGidImage = srcMatch[1] === 'gid:';
                 }
 
                 const attributesString = imageContent.split("|")[1];
