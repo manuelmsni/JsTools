@@ -52,8 +52,8 @@ class Fetcher {
             if (!this.requiresCorsProxy) {
                 data = await this.fetchFileContent(url);
             } else {
-                //data = await this.fetchFileContent('https://corsproxy.io/?' + url);
-                data = await this.fetchFileContent('https://api.allorigins.win/raw?url=' + encodeURIComponent(url));
+                data = await this.fetchFileContent('https://corsproxy.io/?' + url);
+                //data = await this.fetchFileContent('https://api.allorigins.win/raw?url=' + encodeURIComponent(url));
             }
         } catch (error) {
             if (this.debugMode) console.error('Error al cargar el documento:', error);
@@ -111,44 +111,16 @@ class Fetcher {
         return data;
     }
 
-    getImageUrlFromDrive(id) {
+    getImageUrlFromDrive(gid) {
         return 'https://drive.google.com/uc?export=download&id=' + id + '&export=view&authuser=0';
     }
 
-    blobToBase64(blob) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result.split(',')[1]);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        });
-    }
-
-    async fetchAndCacheImage(imageUrl, cacheKey) {
-        const cachedImage = localStorage.getItem(cacheKey);
-        if (cachedImage) {
-            return cachedImage;
-        }
+    async fetchAndCacheBase64ImageFromDrive(gid) {
         try {
-            const response = await this.fetchFileContentAvoidingCors(imageUrl);
-            if (response && response.ok && response.headers.get('Content-Type').includes('image')) {
-                const imageBlob = await response.blob();
-                const imageBase64 = await this.blobToBase64(imageBlob);
-                localStorage.setItem(cacheKey, imageBase64);
-                return imageBase64;
-            } else {
-                if (this.debugMode) console.error('La respuesta no es una imagen o no está disponible:', response);
-            }
+            return await this.fetchDataWithCache(`image_${gid}`, this.fetchFileContentAvoidingCors(gid));
         } catch (error) {
             if (this.debugMode) console.error('Error al cargar la imagen:', error);
         }
-    }
-
-    async fetchImageFromDrive(id) {
-        const imageUrl = this.getImageUrlFromDrive(id);
-        const cacheKey = `image_${id}`;
-        const imageBase64 = await this.fetchAndCacheImage(imageUrl, cacheKey);
-        return `data:image/jpeg;base64,${imageBase64}`;
     }
 
     async fetchGoogleDocsPlainText(docId) {
@@ -213,7 +185,7 @@ class Fetcher {
                     let imageSrc = '';
                     let isIdImage = false;
 
-                    const srcPattern = /(src:|id:)([^\|]+)/;
+                    const srcPattern = /(src:|gid:)([^\|]+)/;
                     const srcMatch = srcPattern.exec(imageContent);
                     if (srcMatch) {
                         imageSrc = srcMatch[2].trim();
@@ -231,15 +203,8 @@ class Fetcher {
                         }
                     }
 
-                    if(isIdImage){
-                        const imageBase64 = await this.fetchImageFromDrive(imageSrc);
-                        attributes.gid = imageSrc;
-                        imageHtml += `<img src="${imageBase64}" alt="${attributes.alt || 'Embedded Image'}"`;
-                    }
-                    else {
-                        attributes.src = imageSrc;
-                        imageHtml += `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
-                    }
+                    attributes.src = await this.fetchAndCacheBase64ImageFromDrive(imageSrc);
+                    imageHtml += `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
 
                     if (this.debugMode) console.log('Image attributes', attributes);
 
