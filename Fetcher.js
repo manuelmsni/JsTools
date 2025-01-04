@@ -241,7 +241,7 @@ class Fetcher {
                         }
                     }
 
-                    imageHtml += ' />';
+                    imageHtml += ' crossorigin="anonymous" />';
 
                     if (attributes.group) {
                         if (imageGroup !== attributes.group) {
