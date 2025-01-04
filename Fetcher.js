@@ -12,9 +12,9 @@ class Fetcher {
         try {
             await this.testCors();
             this.initialized = true;
-	    if(this.debugMode) console.log('Fetcher initialized');
+            if (this.debugMode) console.log('Fetcher initialized');
         } catch (error) {
-	    if(this.debugMode) console.error('Failed to initialize Fetcher:', error);
+            if (this.debugMode) console.error('Failed to initialize Fetcher:', error);
         }
     }
 
@@ -29,11 +29,11 @@ class Fetcher {
         try {
             response = await fetch('https://httpbin.org/cors');
         } catch (error) {
-	    if(this.debugMode) console.log('Error al cargar el documento:', error);
+            if (this.debugMode) console.log('Error al cargar el documento:', error);
         } finally {
             if (!response || !response.ok) {
                 this.requiresCorsProxy = true;
-	        if(this.debugMode) console.log('Proxy required for CORS requests.');
+                if (this.debugMode) console.log('Proxy required for CORS requests.');
             }
         }
     }
@@ -55,7 +55,7 @@ class Fetcher {
                 data = await this.fetchFileContent('https://corsproxy.io/?' + url);
             }
         } catch (error) {
-            if(this.debugMode) console.error('Error al cargar el documento:', error);
+            if (this.debugMode) console.error('Error al cargar el documento:', error);
         } finally {
             return data;
         }
@@ -71,7 +71,7 @@ class Fetcher {
             const array2D = rows.map(row => row.split(',').map(col => col.trim().replace("\r", "")));
             return array2D;
         } catch (error) {
-            if(this.debugMode) console.error('Error al cargar el csv:', error);
+            if (this.debugMode) console.error('Error al cargar el csv:', error);
         }
     }
 
@@ -79,7 +79,7 @@ class Fetcher {
         const array2D = await this.fetchGoogleSheetsCSV(sheetId, sheetGID);
 
         if (!array2D || array2D.length < 2) {
-            if(this.debugMode) console.error("CSV no tiene suficientes datos.");
+            if (this.debugMode) console.error("CSV no tiene suficientes datos.");
             return [];
         }
 
@@ -96,21 +96,21 @@ class Fetcher {
     }
 
     async fetchDataWithCache(key, fetchFunction, expTimeInMs = 86400000) {
-	const cachedData = localStorage.getItem(key);
-	const cachedExpiry = localStorage.getItem('cacheExpiry');
-	const now = new Date().getTime();
-	let expiryData = cachedExpiry ? JSON.parse(cachedExpiry) : {};
-	if (cachedData && expiryData[key] && now < expiryData[key]) {
-	    return JSON.parse(cachedData);
-	}
-	const data = await fetchFunction();
-	localStorage.setItem(key, JSON.stringify(data));
-	expiryData[key] = now + expTimeInMs;
-	localStorage.setItem('cacheExpiry', JSON.stringify(expiryData));
-	return data;
+        const cachedData = localStorage.getItem(key);
+        const cachedExpiry = localStorage.getItem('cacheExpiry');
+        const now = new Date().getTime();
+        let expiryData = cachedExpiry ? JSON.parse(cachedExpiry) : {};
+        if (cachedData && expiryData[key] && now < expiryData[key]) {
+            return JSON.parse(cachedData);
+        }
+        const data = await fetchFunction();
+        localStorage.setItem(key, JSON.stringify(data));
+        expiryData[key] = now + expTimeInMs;
+        localStorage.setItem('cacheExpiry', JSON.stringify(expiryData));
+        return data;
     }
 
-    getImageUrlFromDrive(id){
+    getImageUrlFromDrive(id) {
         return 'https://drive.google.com/uc?export=download&id=' + id;
     }
 
@@ -153,145 +153,145 @@ class Fetcher {
             const plainText = await this.fetchFileContentAvoidingCors(targetUrl);
             return plainText;
         } catch (error) {
-            if(this.debugMode) console.error('Error al obtener el texto plano del documento:', error);
+            if (this.debugMode) console.error('Error al obtener el texto plano del documento:', error);
         }
     }
 
-async fetchGoogleDocsHtml(docId) {
-    const text = await this.fetchGoogleDocsPlainText(docId);
-    const lines = text.split('\n');
-    const headerPattern = /^#{1,6}\s/;
-    const orderedListPattern = /^\d+\./;
-    const imagePattern = /^\[image\|([^\]]+)\]$/;
-    
-    let html = '';
-    let isInList = false;
-    let listType = null;
-    let imageGroup = null;
+    async fetchGoogleDocsHtml(docId) {
+        const text = await this.fetchGoogleDocsPlainText(docId);
+        const lines = text.split('\n');
+        const headerPattern = /^#{1,6}\s/;
+        const orderedListPattern = /^\d+\./;
+        const imagePattern = /^\[image\|([^\]]+)\]$/;
 
-    lines.forEach(line => {
-        const trimmedLine = line.trim();
-        if(this.debugMode) console.log("Processing line:", trimmedLine);
-        const headerMatch = headerPattern.exec(trimmedLine);
-        if (headerMatch) {  // Header
-            if (isInList) {
-                html += `</${listType}>`;
-                isInList = false;
-                listType = null;
-            }
-            const level = headerMatch[0].trim().length;
-            html += `<h${level}>${trimmedLine.slice(level).trim()}</h${level}>`;
-        }
-        else if (trimmedLine.startsWith('*')) { // Unordered list
-            if (!isInList || listType !== 'ul') {
-                if (isInList) html += `</${listType}>`;
-                html += '<ul>';
-                isInList = true;
-                listType = 'ul';
-            }
-            html += `<li>${trimmedLine.slice(1).trim()}</li>`;
-        }
-        else if (orderedListPattern.test(trimmedLine)) { // Ordered list
-            if (!isInList || listType !== 'ol') {
-                if (isInList) html += `</${listType}>`;
-                html += '<ol>';
-                isInList = true;
-                listType = 'ol';
-            }
-            html += `<li>${trimmedLine.replace(/^\d+\.\s*/, '').trim()}</li>`;
-        }
-        else if (imagePattern.test(trimmedLine)) { // Image processing
-            const imageMatch = imagePattern.exec(trimmedLine);
-            if (imageMatch) {
-                const imageContent = imageMatch[1].trim();
-                let attributes = {};
-                let imageHtml = '';
-                let imageSrc = '';
-                
-                const srcPattern = /src:([^\|]+)/;
-                const srcMatch = srcPattern.exec(imageContent);
-                if (srcMatch) {
-                    imageSrc = srcMatch[1].trim();
-                    attributes.src = imageSrc;
+        let html = '';
+        let isInList = false;
+        let listType = null;
+        let imageGroup = null;
+
+        await lines.forEach(async line => {
+            const trimmedLine = line.trim();
+            if (this.debugMode) console.log("Processing line:", trimmedLine);
+            const headerMatch = headerPattern.exec(trimmedLine);
+            if (headerMatch) {  // Header
+                if (isInList) {
+                    html += `</${listType}>`;
+                    isInList = false;
+                    listType = null;
                 }
+                const level = headerMatch[0].trim().length;
+                html += `<h${level}>${trimmedLine.slice(level).trim()}</h${level}>`;
+            }
+            else if (trimmedLine.startsWith('*')) { // Unordered list
+                if (!isInList || listType !== 'ul') {
+                    if (isInList) html += `</${listType}>`;
+                    html += '<ul>';
+                    isInList = true;
+                    listType = 'ul';
+                }
+                html += `<li>${trimmedLine.slice(1).trim()}</li>`;
+            }
+            else if (orderedListPattern.test(trimmedLine)) { // Ordered list
+                if (!isInList || listType !== 'ol') {
+                    if (isInList) html += `</${listType}>`;
+                    html += '<ol>';
+                    isInList = true;
+                    listType = 'ol';
+                }
+                html += `<li>${trimmedLine.replace(/^\d+\.\s*/, '').trim()}</li>`;
+            }
+            else if (imagePattern.test(trimmedLine)) { // Image processing
+                const imageMatch = imagePattern.exec(trimmedLine);
+                if (imageMatch) {
+                    const imageContent = imageMatch[1].trim();
+                    let attributes = {};
+                    let imageHtml = '';
+                    let imageSrc = '';
 
-		const attributesString = imageContent.split("|")[1];
-                const attributesPattern = /(\w+)(?:="([^"]*)")?/g;
-                let match;
-	        while ((match = attributesPattern.exec(attributesString)) !== null) {
-		    let key = match[1].trim();
-		    if (key) {
-		        let value = match[2] || true;
-		        attributes[key] = value;
-		    }
-		}
-		    
-		if(this.debugMode) console.log(attributes);
-
-		// Fetch image using fetchImageFromDrive
-                const imageBase64 = await this.fetchImageFromDrive(imageSrc);  // Fetch image as base64
-                attributes.src = imageBase64; // Set the image source to base64 data
-                imageHtml += `<img src="${imageBase64}" alt="${attributes.alt || 'Embedded Image'}"`;
-
-                //imageHtml += `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
-
-                for (const key in attributes) {
-                    if (!["alt", "src", "group", "figure", "caption"].includes(key)) {
-                        imageHtml += ` ${key}="${attributes[key]}"`;
+                    const srcPattern = /src:([^\|]+)/;
+                    const srcMatch = srcPattern.exec(imageContent);
+                    if (srcMatch) {
+                        imageSrc = srcMatch[1].trim();
+                        attributes.src = imageSrc;
                     }
-                }
 
-                imageHtml += ' />';
-
-                if (attributes.group) {
-                    if (imageGroup !== attributes.group) {
-                        if (imageGroup) {
-                            html += `</div>`;
+                    const attributesString = imageContent.split("|")[1];
+                    const attributesPattern = /(\w+)(?:="([^"]*)")?/g;
+                    let match;
+                    while ((match = attributesPattern.exec(attributesString)) !== null) {
+                        let key = match[1].trim();
+                        if (key) {
+                            let value = match[2] || true;
+                            attributes[key] = value;
                         }
-                        html += `<div class="image-group">`;
-                        imageGroup = attributes.group;
+                    }
+
+                    if (this.debugMode) console.log(attributes);
+
+                    // Fetch image using fetchImageFromDrive
+                    const imageBase64 = await this.fetchImageFromDrive(imageSrc);  // Fetch image as base64
+                    attributes.src = imageBase64; // Set the image source to base64 data
+                    imageHtml += `<img src="${imageBase64}" alt="${attributes.alt || 'Embedded Image'}"`;
+
+                    //imageHtml += `<img src="${imageSrc}" alt="${attributes.alt || 'Embedded Image'}"`;
+
+                    for (const key in attributes) {
+                        if (!["alt", "src", "group", "figure", "caption"].includes(key)) {
+                            imageHtml += ` ${key}="${attributes[key]}"`;
+                        }
+                    }
+
+                    imageHtml += ' />';
+
+                    if (attributes.group) {
+                        if (imageGroup !== attributes.group) {
+                            if (imageGroup) {
+                                html += `</div>`;
+                            }
+                            html += `<div class="image-group">`;
+                            imageGroup = attributes.group;
+                        }
+                    }
+
+                    if (attributes.figure) {
+                        html += '<figure>';
+                    }
+
+                    html += imageHtml;
+
+                    if (attributes.figure) {
+                        if (attributes.caption) {
+                            html += `<figcaption>${attributes.caption}</figcaption>`
+                        }
+                        html += '</figure>';
                     }
                 }
-
-	        if (attributes.figure) {
-                    html += '<figure>';
+            }
+            else { // Plain text
+                if (isInList) {
+                    html += `</${listType}>`;
+                    isInList = false;
+                    listType = null;
                 }
-                
-                html += imageHtml;
-
-                if (attributes.figure) {
-		    if(attributes.caption){
-		        html += `<figcaption>${attributes.caption}</figcaption>`
-		    }
-                    html += '</figure>';
+                if (imageGroup) {
+                    html += `</div>`;
+                    imageGroup = null;
+                }
+                if (trimmedLine) {
+                    html += `<p>${trimmedLine}</p>`;
                 }
             }
+        });
+
+        // Close any open list or group
+        if (isInList) {
+            html += `</${listType}>`;
         }
-        else { // Plain text
-            if (isInList) {
-                html += `</${listType}>`;
-                isInList = false;
-                listType = null;
-            }
-	    if (imageGroup) {
-                html += `</div>`;
-		imageGroup = null;
-	    }
-            if (trimmedLine) {
-                html += `<p>${trimmedLine}</p>`;
-            }
+        if (imageGroup) {
+            html += `</div>`;
         }
-    });
-    
-    // Close any open list or group
-    if (isInList) {
-        html += `</${listType}>`;
+
+        return html;
     }
-    if (imageGroup) {
-        html += `</div>`;
-    }
-    
-    return html;
-}
 
 }
