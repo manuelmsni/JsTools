@@ -131,7 +131,17 @@ class Fetcher {
         }
         try {
             const response = await this.fetchFileContentAvoidingCors(imageUrl);
-            const imageBlob = await response.blob();
+            
+            if (!response || !response.ok) {
+                throw new Error('Failed to load image');
+            }
+    
+            const contentType = response.headers.get('Content-Type');
+            if (!contentType || !contentType.startsWith('image/')) {
+                throw new Error('Response is not an image');
+            }
+    
+            const imageBlob = await response.blob();  // Ensure this is a valid blob
             const imageBase64 = await this.blobToBase64(imageBlob);
             localStorage.setItem(cacheKey, imageBase64);
             return imageBase64;
