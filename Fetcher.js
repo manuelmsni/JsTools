@@ -131,20 +131,14 @@ class Fetcher {
         }
         try {
             const response = await this.fetchFileContentAvoidingCors(imageUrl);
-            
-            if (!response || !response.ok) {
-                throw new Error('Failed to load image');
+            if (response && response.ok && response.headers.get('Content-Type').includes('image')) {
+                const imageBlob = await response.blob();
+                const imageBase64 = await this.blobToBase64(imageBlob);
+                localStorage.setItem(cacheKey, imageBase64);
+                return imageBase64;
+            } else {
+                if (this.debugMode) console.error('La respuesta no es una imagen o no está disponible:', response);
             }
-    
-            const contentType = response.headers.get('Content-Type');
-            if (!contentType || !contentType.startsWith('image/')) {
-                throw new Error('Response is not an image');
-            }
-    
-            const imageBlob = await response.blob();  // Ensure this is a valid blob
-            const imageBase64 = await this.blobToBase64(imageBlob);
-            localStorage.setItem(cacheKey, imageBase64);
-            return imageBase64;
         } catch (error) {
             if (this.debugMode) console.error('Error al cargar la imagen:', error);
         }
