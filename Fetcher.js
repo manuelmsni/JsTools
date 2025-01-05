@@ -140,7 +140,7 @@ class Fetcher {
         }
     }
 
-async fetchGoogleDocsHtml(docId) {
+async fetchGoogleDocsHtml(container, docId) {
     const text = await this.fetchGoogleDocsPlainText(docId);
     const lines = text.split('\n');
     const headerPattern = /^#{1,6}\s/;
@@ -206,16 +206,18 @@ async fetchGoogleDocsHtml(docId) {
                     }
                 }
 
-                if(isGidImage){
-                    attributes.src = await this.fetchAndCacheBase64ImageFromDrive(imageSrc);
-                }
-                else {
+                if (isGidImage) {
+                    attributes["data-src"] = imageSrc; // Save URL for later
+                    attributes.src = "loading-placeholder.png"; // Placeholder
+                } else {
                     attributes.src = imageSrc;
                 }
-                
+
                 imageHtml += `<img src="${attributes.src}" alt="${attributes.alt || 'Embedded Image'}"`;
 
-                if (this.debugMode) console.log('Image attributes', attributes);
+                if (isGidImage) {
+                    imageHtml += ` data-src="${attributes["data-src"]}"`; // Add data-src attribute
+                }
 
                 for (const key in attributes) {
                     if (!["alt", "src", "group", "figure", "caption", "gid"].includes(key)) {
@@ -271,8 +273,17 @@ async fetchGoogleDocsHtml(docId) {
     if (imageGroup) {
         html += `</div>`;
     }
+    container.innerHTML = html;
 
-    return html;
+    const images = container.querySelectorAll('img[data-src]');
+    for (const img of images) {
+        const dataSrc = img.getAttribute('data-src');
+        if (dataSrc) {
+            const base64Src = await fetchAndCacheBase64ImageFromDrive(dataSrc);
+            img.src = base64Src;
+            img.removeAttribute('data-src');
+        }
+    }
 }
 
 }
