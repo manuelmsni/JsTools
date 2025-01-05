@@ -279,9 +279,11 @@ async fetchGoogleDocsHtml(container, docId) {
     for (const img of images) {
         const dataSrc = img.getAttribute('data-src');
         if (dataSrc) {
-            const base64Src = this.fetchAndCacheBase64ImageFromDrive(dataSrc);
-            img.src = base64Src;
-            img.removeAttribute('data-src');
+            (async () => { 
+                const base64Src = await this.fetchAndCacheBase64ImageFromDrive(dataSrc);
+                img.src = base64Src; 
+                img.removeAttribute('data-src');
+            })();
         }
     }
 }
