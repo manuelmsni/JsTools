@@ -147,6 +147,9 @@ async fetchGoogleDocsHtml(container, docId) {
     const orderedListPattern = /^\d+\./;
     const imagePattern = /^\[image\|([^\]]+)\]$/;
 
+    // Base64 for a small gray placeholder image
+    const grayImageBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAwAB/9T/73wAAAABJRU5ErkJggg==';
+
     let html = '';
     let isInList = false;
     let listType = null;
@@ -208,7 +211,7 @@ async fetchGoogleDocsHtml(container, docId) {
 
                 if (isGidImage) {
                     attributes["data-src"] = imageSrc; // Save URL for later
-                    attributes.src = "loading-placeholder.png"; // Placeholder
+                    attributes.src = grayImageBase64; // Placeholder
                 } else {
                     attributes.src = imageSrc;
                 }
