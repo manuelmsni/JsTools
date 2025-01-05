@@ -148,7 +148,7 @@ async fetchGoogleDocsHtml(container, docId) {
     const imagePattern = /^\[image\|([^\]]+)\]$/;
 
     // Base64 for a small gray placeholder image
-    const grayImageBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAwAB/9T/73wAAAABJRU5ErkJggg==';
+    const grayImageBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAKCAIAAAAy3EnLAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAVSURBVChTYzhMIhjVQAwYdBoOHwYAAIxtsGmNwOMAAAAASUVORK5CYII=';
 
     let html = '';
     let isInList = false;
