@@ -265,29 +265,27 @@ class Fetcher {
         container.innerHTML = html;
 
         // Obtains the images data
-        (async () => {
-            let imagesData = lines.slice(endLine);
-            let imagesDataDictionary = imagesData.reduce((acc, line) => {
-                const match = line.match(/^\[([^\]]+)\]:(.*)$/);
-                if (match) {
-                    let value = match[2].trim();
-                    if (value.startsWith('<') && value.endsWith('>')) {
-                        value = value.slice(1, -1);
-                    }
-                    acc[match[1]] = value;
+        let imagesData = lines.slice(endLine);
+        let imagesDataDictionary = imagesData.reduce((acc, line) => {
+            const match = line.match(/^\[([^\]]+)\]:(.*)$/);
+            if (match) {
+                let value = match[2].trim();
+                if (value.startsWith('<') && value.endsWith('>')) {
+                    value = value.slice(1, -1);
                 }
-                return acc;
-            }, {});
-    
-            const images = container.querySelectorAll('img[data-src]');
-            for (const img of images) {
-                const dataSrc = img.getAttribute('data-src');
-                if (dataSrc) {
-                    img.src = imagesDataDictionary[dataSrc];
-                    img.removeAttribute('data-src');
-                }
+                acc[match[1]] = value;
             }
-        });
+            return acc;
+        }, {});
+
+        const images = container.querySelectorAll('img[data-src]');
+        for (const img of images) {
+            const dataSrc = img.getAttribute('data-src');
+            if (dataSrc) {
+                img.src = imagesDataDictionary[dataSrc];
+                img.removeAttribute('data-src');
+            }
+        }
     }
 
 }
