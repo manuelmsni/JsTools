@@ -52,8 +52,8 @@ class Fetcher {
             if (!this.requiresCorsProxy) {
                 data = await this.fetchFileContent(url);
             } else {
-                //data = await this.fetchFileContent('https://corsproxy.io/?' + url);
-                data = await this.fetchFileContent('https://api.allorigins.win/raw?url=' + encodeURIComponent(url));
+                data = await this.fetchFileContent('https://corsproxy.io/?' + url);
+                //data = await this.fetchFileContent('https://api.allorigins.win/raw?url=' + encodeURIComponent(url));
             }
         } catch (error) {
             if (this.debugMode) console.error('Error al cargar el documento:', error);
@@ -115,23 +115,9 @@ class Fetcher {
         return 'https://drive.google.com/uc?export=download&id=' + id + '&export=view&authuser=0';
     }
 
-    async fetchAndCacheBase64ImageFromDrive(gid) {
-        try {
-            const url = `https://drive.google.com/uc?id=${gid}&export=download`;
-            return await this.fetchDataWithCache(
-                `image_${gid}`,
-                async () => await this.fetchFileContentAvoidingCors(url)
-            );
-        } catch (error) {
-            if (this.debugMode) {
-                console.error('Error loading the image:', error);
-            }
-        }
-    }
-
     async fetchGoogleDocsPlainText(docId) {
         await this.waitForInitialization();
-        const targetUrl = `https://docs.google.com/document/d/${docId}/export?format=txt`;
+        const targetUrl = `https://docs.google.com/document/d/${docId}/export?format=md`;
         try {
             const plainText = await this.fetchFileContentAvoidingCors(targetUrl);
             return plainText;
@@ -140,155 +126,168 @@ class Fetcher {
         }
     }
 
-async fetchGoogleDocsHtml(container, docId) {
-    const text = await this.fetchGoogleDocsPlainText(docId);
-    const lines = text.split('\n');
-    const headerPattern = /^#{1,6}\s/;
-    const orderedListPattern = /^\d+\./;
-    const imagePattern = /^\[image\|([^\]]+)\]$/;
+    decodeHtmlEntities(input) {
+        return input
+            .replace(/\\&lt;/g, '<')
+            .replace(/\\&gt;/g, '>')
+            .replace(/\\&quot;/g, '"')
+            .replace(/\\&amp;/g, '&');
+    }
 
-    // Base64 for a small gray placeholder image
-    const grayImageBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAKCAIAAAAy3EnLAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAVSURBVChTYzhMIhjVQAwYdBoOHwYAAIxtsGmNwOMAAAAASUVORK5CYII=';
+    async fetchGoogleDocsMdAsHtml(container, docId) {
+        const text = await this.fetchGoogleDocsPlainText(docId);
+        const lines = text.split('\n');
+        const headerPattern = /^#{1,6}\s/;
+        const orderedListPattern = /^\d+\./;
+        const imagePattern = /!\[(.*?)\]\[image(\d+)\]/;
+        const imageDataPattern = /^\[image\d+\]:/;
+        const grayImageBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAKCAIAAAAy3EnLAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAVSURBVChTYzhMIhjVQAwYdBoOHwYAAIxtsGmNwOMAAAAASUVORK5CYII=';
 
-    let html = '';
-    let isInList = false;
-    let listType = null;
-    let imageGroup = null;
+        let html = '';
+        let isInList = false;
+        let listType = null;
+        let imageGroup = null;
 
-    for (const line of lines) {
-        const trimmedLine = line.trim();
-        const headerMatch = headerPattern.exec(trimmedLine);
-        if (headerMatch) {  // Header
-            if (isInList) {
-                html += `</${listType}>`;
-                isInList = false;
-                listType = null;
-            }
-            const level = headerMatch[0].trim().length;
-            html += `<h${level}>${trimmedLine.slice(level).trim()}</h${level}>`;
-        } else if (trimmedLine.startsWith('*')) { // Unordered list
-            if (!isInList || listType !== 'ul') {
-                if (isInList) html += `</${listType}>`;
-                html += '<ul>';
-                isInList = true;
-                listType = 'ul';
-            }
-            html += `<li>${trimmedLine.slice(1).trim()}</li>`;
-        } else if (orderedListPattern.test(trimmedLine)) { // Ordered list
-            if (!isInList || listType !== 'ol') {
-                if (isInList) html += `</${listType}>`;
-                html += '<ol>';
-                isInList = true;
-                listType = 'ol';
-            }
-            html += `<li>${trimmedLine.replace(/^\d+\.\s*/, '').trim()}</li>`;
-        } else if (imagePattern.test(trimmedLine)) { // Image processing
-            const imageMatch = imagePattern.exec(trimmedLine);
-            if (imageMatch) {
-                const imageContent = imageMatch[1].trim();
-                let attributes = {};
-                let imageHtml = '';
-                let imageSrc = '';
-                let isGidImage = false;
+        let endLine = 0;
 
-                const srcPattern = /(src:|gid:)([^\|]+)/;
-                const srcMatch = srcPattern.exec(imageContent);
-                if (srcMatch) {
-                    imageSrc = srcMatch[2].trim();
-                    isGidImage = srcMatch[1] === 'gid:';
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+            const headerMatch = headerPattern.exec(trimmedLine);
+
+            if (headerMatch) {  // Header
+                if (isInList) {
+                    html += `</${listType}>`;
+                    isInList = false;
+                    listType = null;
                 }
-
-                const attributesString = imageContent.split("|")[1];
-                const attributesPattern = /(\w+)(?:="([^"]*)")?/g;
-                let match;
-                while ((match = attributesPattern.exec(attributesString)) !== null) {
-                    let key = match[1].trim();
-                    if (key) {
-                        let value = match[2] || true;
-                        attributes[key] = value;
-                    }
+                const level = headerMatch[0].trim().length;
+                html += `<h${level}>${trimmedLine.slice(level).trim()}</h${level}>`;
+            } else if (trimmedLine.startsWith('*')) { // Unordered list
+                if (!isInList || listType !== 'ul') {
+                    if (isInList) html += `</${listType}>`;
+                    html += '<ul>';
+                    isInList = true;
+                    listType = 'ul';
                 }
-
-                if (isGidImage) {
-                    attributes["data-src"] = imageSrc; // Save URL for later
-                    attributes.src = grayImageBase64; // Placeholder
-                } else {
-                    attributes.src = imageSrc;
+                html += `<li>${trimmedLine.slice(1).trim()}</li>`;
+            } else if (orderedListPattern.test(trimmedLine)) { // Ordered list
+                if (!isInList || listType !== 'ol') {
+                    if (isInList) html += `</${listType}>`;
+                    html += '<ol>';
+                    isInList = true;
+                    listType = 'ol';
                 }
+                html += `<li>${trimmedLine.replace(/^\d+\.\s*/, '').trim()}</li>`;
+            } else if (imagePattern.test(trimmedLine)) { // Image processing
 
-                imageHtml += `<img src="${attributes.src}" alt="${attributes.alt || 'Embedded Image'}"`;
+                const imageMatch = imagePattern.exec(trimmedLine);
+                
+                if (imageMatch) {
 
-                if (isGidImage) {
-                    imageHtml += ` data-src="${attributes["data-src"]}"`; // Add data-src attribute
-                }
+                    const imageSustitutiveText = this.decodeHtmlEntities(imageMatch[1].trim());
+                    const imageNumber = imageMatch[2].trim();
 
-                for (const key in attributes) {
-                    if (!["alt", "src", "group", "figure", "caption", "gid"].includes(key)) {
-                        imageHtml += ` ${key}="${attributes[key]}"`;
-                    }
-                }
+                    let attributes = {};
+                    let imageHtml = '';
 
-                imageHtml += ' crossorigin="anonymous" />';
-
-                if (attributes.group) {
-                    if (imageGroup !== attributes.group) {
-                        if (imageGroup) {
-                            html += `</div>`;
+                    const attributesPattern = /(\w+)(?:="([^"]*)")?/g;
+                    let match;
+                    while ((match = attributesPattern.exec(imageSustitutiveText)) !== null) {
+                        let key = match[1].trim();
+                        if (key) {
+                            let value = match[2] || true;
+                            attributes[key] = value;
                         }
-                        html += `<div class="image-group">`;
-                        imageGroup = attributes.group;
+                    }
+
+                    attributes["data-src"] = `image${imageNumber}`; // Save image number for later
+                    attributes.src = grayImageBase64; // Placeholder image
+
+                    imageHtml += `<img src="${attributes.src}" alt="${attributes.alt || 'Embedded Image'}" data-src="${attributes["data-src"]}"`;
+
+                    for (const key in attributes) {
+                        if (!["alt", "src", "group", "figure", "caption", "gid"].includes(key)) {
+                            imageHtml += ` ${key}="${attributes[key]}"`;
+                        }
+                    }
+
+                    imageHtml += ' />';
+
+                    if (attributes.group) {
+                        if (imageGroup !== attributes.group) {
+                            if (imageGroup) {
+                                html += `</div>`;
+                            }
+                            html += `<div class="image-group">`;
+                            imageGroup = attributes.group;
+                        }
+                    }
+
+                    if (attributes.figure) {
+                        html += '<figure>';
+                    }
+
+                    html += imageHtml;
+
+                    if (attributes.figure) {
+                        if (attributes.caption) {
+                            html += `<figcaption>${attributes.caption}</figcaption>`;
+                        }
+                        html += '</figure>';
                     }
                 }
-
-                if (attributes.figure) {
-                    html += '<figure>';
+            } else if(imageDataPattern.test(trimmedLine)) { // Image data begins
+                break;
+            } else { // Plain text
+                if (imageGroup) {
+                    html += `</div>`;
+                    imageGroup = null;
                 }
+                if (isInList) {
+                    html += `</${listType}>`;
+                    isInList = false;
+                    listType = null;
+                }
+                if (trimmedLine) {
+                    html += `<p>${trimmedLine}</p>`;
+                }
+            }
+            endLine++;
+        }
 
-                html += imageHtml;
+        // Close any open list or group
+        if (isInList) {
+            html += `</${listType}>`;
+        }
+        if (imageGroup) {
+            html += `</div>`;
+        }
+        container.innerHTML = html;
 
-                if (attributes.figure) {
-                    if (attributes.caption) {
-                        html += `<figcaption>${attributes.caption}</figcaption>`;
+        // Obtains the images data
+        (async () => {
+            let imagesData = lines.slice(endLine);
+            let imagesDataDictionary = imagesData.reduce((acc, line) => {
+                const match = line.match(/^\[([^\]]+)\]:(.*)$/);
+                if (match) {
+                    let value = match[2].trim();
+                    if (value.startsWith('<') && value.endsWith('>')) {
+                        value = value.slice(1, -1);
                     }
-                    html += '</figure>';
+                    acc[match[1]] = value;
+                }
+                return acc;
+            }, {});
+    
+            const images = container.querySelectorAll('img[data-src]');
+            for (const img of images) {
+                const dataSrc = img.getAttribute('data-src');
+                if (dataSrc) {
+                    img.src = imagesDataDictionary[dataSrc];
+                    img.removeAttribute('data-src');
                 }
             }
-        } else { // Plain text
-            if (isInList) {
-                html += `</${listType}>`;
-                isInList = false;
-                listType = null;
-            }
-            if (imageGroup) {
-                html += `</div>`;
-                imageGroup = null;
-            }
-            if (trimmedLine) {
-                html += `<p>${trimmedLine}</p>`;
-            }
-        }
+        });
     }
-
-    // Close any open list or group
-    if (isInList) {
-        html += `</${listType}>`;
-    }
-    if (imageGroup) {
-        html += `</div>`;
-    }
-    container.innerHTML = html;
-
-    const images = container.querySelectorAll('img[data-src]');
-    for (const img of images) {
-        const dataSrc = img.getAttribute('data-src');
-        if (dataSrc) {
-            (async () => { 
-                const base64Src = await this.fetchAndCacheBase64ImageFromDrive(dataSrc);
-                img.src = base64Src; 
-                img.removeAttribute('data-src');
-            })();
-        }
-    }
-}
 
 }
